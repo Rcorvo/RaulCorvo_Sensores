@@ -13,6 +13,8 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity implements SensorEventListener{
 
     private TextView salida;
+    private float[] mGravedad;
+    private float[] mGeomagnetismo;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,11 +28,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             log(sensor.getName());
         }
 
-        listaSensores = sensorManager.getSensorList(Sensor.TYPE_ORIENTATION);
-        if(!listaSensores.isEmpty()){
-            Sensor orientationSensor = listaSensores.get(0);
-            sensorManager.registerListener(this, orientationSensor, SensorManager.SENSOR_DELAY_UI);
-        }
         listaSensores = sensorManager.getSensorList(Sensor.TYPE_ACCELEROMETER);
         if(!listaSensores.isEmpty()){
             Sensor acelerometerSensor = listaSensores.get(0);
@@ -58,18 +55,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         //pase por aquí asi que sincronizamos el acceso
         synchronized(this){
             switch (sensorEvent.sensor.getType()){
-                case Sensor.TYPE_ORIENTATION:
-                    for(int i=0; i<3; i++){
-                        log("Orientation " + i + ": " + sensorEvent.values[i]);
-                    }
-                    break;
                 case Sensor.TYPE_ACCELEROMETER:
-                    for(int i=0; i<3; i++){
+                    mGravedad = sensorEvent.values;
+                    for(int i=0; i<mGravedad.length; i++){
                         log("Acelerometro " + i + ": " + sensorEvent.values[i]);
                     }
                     break;
                 case Sensor.TYPE_MAGNETIC_FIELD:
-                    for(int i=0; i<3; i++){
+                    mGeomagnetismo = sensorEvent.values;
+                    for(int i=0; i<mGeomagnetismo.length; i++){
                         log("Magnetismo " + i + ": " + sensorEvent.values[i]);
                     }
                     break;
@@ -77,7 +71,20 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     for(int i=0; i<sensorEvent.values.length; i++){
                         log("Temperatura " + i + ": " + sensorEvent.values[i]);
                     }
-                    break;
+            }
+
+            if(mGravedad != null && mGeomagnetismo != null){
+                float R[] = new float[9];
+                float I[] = new float[9];
+                boolean exito = SensorManager.getRotationMatrix(R, I, mGravedad, mGeomagnetismo);
+                if(exito){
+                    float orientation[] = new float[3];
+                    SensorManager.getOrientation(R, orientation);
+                    //angulos en radianes
+                    log("ORIENTACION Acimut " + orientation[0]);
+                    log("ORIENTACION Pitch " + orientation[1]);
+                    log("ORIENTACION Roll " + orientation[2]);
+                }
             }
         }
     }
